@@ -399,6 +399,20 @@ public class Func {
 	}
 
 	/**
+	 * 强转string(包含空字符串),并去掉多余空格
+	 *
+	 * @param str          字符串
+	 * @param defaultValue 默认值
+	 * @return {String}
+	 */
+	public static String toStrWithEmpty(Object str, String defaultValue) {
+		if (null == str || str.equals(StringPool.NULL) || str.equals(StringPool.EMPTY)) {
+			return defaultValue;
+		}
+		return String.valueOf(str);
+	}
+
+	/**
 	 * 判断一个字符串是否是数字
 	 *
 	 * @param cs the CharSequence to check, may be null
@@ -710,6 +724,32 @@ public class Func {
 	 */
 	public static List<Long> toLongList(String split, String str) {
 		return Arrays.asList(toLongArray(split, str));
+	}
+
+	/**
+	 * 获取第一位Long数值
+	 *
+	 * @param str 被转换的值
+	 * @return 结果
+	 */
+	public static Long firstLong(String str) {
+		return firstLong(",", str);
+	}
+
+	/**
+	 * 获取第一位Long数值
+	 *
+	 * @param split 分隔符
+	 * @param str   被转换的值
+	 * @return 结果
+	 */
+	public static Long firstLong(String split, String str) {
+		List<Long> longs = toLongList(split, str);
+		if (isEmpty(longs)) {
+			return null;
+		} else {
+			return longs.get(0);
+		}
 	}
 
 	/**
@@ -1477,7 +1517,7 @@ public class Func {
 	 * @return T
 	 */
 	public static <T> T copy(Object source, Class<T> clazz) {
-		return BeanUtil.copy(source, clazz);
+		return BeanUtil.copyProperties(source, clazz);
 	}
 
 	/**
@@ -1489,7 +1529,7 @@ public class Func {
 	 * @param targetBean 需要赋值的对象
 	 */
 	public static void copy(Object source, Object targetBean) {
-		BeanUtil.copy(source, targetBean);
+		BeanUtil.copyProperties(source, targetBean);
 	}
 
 	/**

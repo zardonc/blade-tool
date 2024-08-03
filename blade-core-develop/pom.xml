@@ -5,13 +5,12 @@
     <parent>
         <artifactId>blade-tool</artifactId>
         <groupId>org.springblade</groupId>
-        <version>3.4.1</version>
+        <version>${revision}</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
     <artifactId>blade-core-develop</artifactId>
     <name>${project.artifactId}</name>
-    <version>${blade.tool.version}</version>
     <packaging>jar</packaging>
 
     <dependencies>
@@ -19,18 +18,15 @@
         <dependency>
             <groupId>org.springblade</groupId>
             <artifactId>blade-core-tool</artifactId>
-            <version>${blade.tool.version}</version>
         </dependency>
         <!--Mybatis-Plus-->
         <dependency>
             <groupId>com.baomidou</groupId>
             <artifactId>mybatis-plus-generator</artifactId>
-            <version>${mybatis.plus.generator.version}</version>
         </dependency>
         <dependency>
             <groupId>com.baomidou</groupId>
             <artifactId>mybatis-plus-extension</artifactId>
-            <version>${mybatis.plus.version}</version>
         </dependency>
         <!--Velocity-->
         <dependency>
@@ -39,6 +35,5 @@
             <version>1.7</version>
         </dependency>
     </dependencies>
-
 
 </project>

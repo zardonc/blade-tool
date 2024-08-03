@@ -25,7 +25,7 @@ import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.core.Ordered;
 
-import javax.servlet.DispatcherType;
+import jakarta.servlet.DispatcherType;
 
 /**
  * 过滤器配置类
@@ -42,6 +42,8 @@ public class RequestConfiguration {
 
 	/**
 	 * 全局过滤器
+	 *
+	 * @return 自定义过滤器
 	 */
 	@Bean
 	public FilterRegistrationBean<BladeRequestFilter> bladeFilterRegistration() {

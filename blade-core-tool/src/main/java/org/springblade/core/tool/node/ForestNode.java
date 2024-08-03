@@ -18,16 +18,19 @@ package org.springblade.core.tool.node;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
+import java.io.Serial;
+
 
 /**
  * 森林节点类
  *
- * @author Chill
+ * @author smallchill
  */
 @Data
 @EqualsAndHashCode(callSuper = false)
-public class ForestNode extends BaseNode {
+public class ForestNode extends BaseNode<ForestNode> {
 
+	@Serial
 	private static final long serialVersionUID = 1L;
 
 	/**

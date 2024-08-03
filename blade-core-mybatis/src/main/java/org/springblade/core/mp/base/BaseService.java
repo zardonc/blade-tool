@@ -15,9 +15,10 @@
  */
 package org.springblade.core.mp.base;
 
+import com.baomidou.mybatisplus.core.toolkit.support.SFunction;
 import com.baomidou.mybatisplus.extension.service.IService;
 
-import javax.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.NotEmpty;
 import java.util.List;
 
 /**
@@ -35,5 +36,15 @@ public interface BaseService<T> extends IService<T> {
 	 * @return boolean
 	 */
 	boolean deleteLogic(@NotEmpty List<Long> ids);
+
+	/**
+	 * 判断字段是否重复
+	 *
+	 * @param field      字段
+	 * @param value      字段值
+	 * @param excludedId 排除的id
+	 * @return boolean
+	 */
+	boolean isFieldDuplicate(SFunction<T, ?> field, Object value, Long excludedId);
 
 }

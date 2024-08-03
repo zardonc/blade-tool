@@ -25,13 +25,14 @@ import org.springblade.core.secure.BladeUser;
 import org.springblade.core.secure.TokenInfo;
 import org.springblade.core.secure.constant.SecureConstant;
 import org.springblade.core.secure.exception.SecureException;
+import org.springblade.core.secure.props.BladeTokenProperties;
 import org.springblade.core.secure.provider.IClientDetails;
 import org.springblade.core.secure.provider.IClientDetailsService;
 import org.springblade.core.tool.constant.RoleConstant;
 import org.springblade.core.tool.utils.*;
 
 import javax.crypto.spec.SecretKeySpec;
-import javax.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletRequest;
 import java.security.Key;
 import java.util.*;
 
@@ -45,6 +46,7 @@ public class SecureUtil {
 
 	private final static String HEADER = TokenConstant.HEADER;
 	private final static String BEARER = TokenConstant.BEARER;
+	private final static String CRYPTO = TokenConstant.CRYPTO;
 	private final static String ACCOUNT = TokenConstant.ACCOUNT;
 	private final static String USER_ID = TokenConstant.USER_ID;
 	private final static String ROLE_ID = TokenConstant.ROLE_ID;
@@ -54,12 +56,45 @@ public class SecureUtil {
 	private final static String TENANT_ID = TokenConstant.TENANT_ID;
 	private final static String CLIENT_ID = TokenConstant.CLIENT_ID;
 	private final static Integer AUTH_LENGTH = TokenConstant.AUTH_LENGTH;
-	private static final String BASE64_SECURITY = Base64.getEncoder().encodeToString(TokenConstant.SIGN_KEY.getBytes(Charsets.UTF_8));
+	private static IClientDetailsService CLIENT_DETAILS_SERVICE;
+	private static BladeTokenProperties TOKEN_PROPERTIES;
+	private static String BASE64_SECURITY;
 
-	private static final IClientDetailsService clientDetailsService;
 
-	static {
-		clientDetailsService = SpringUtil.getBean(IClientDetailsService.class);
+	/**
+	 * 获取客户端服务类
+	 *
+	 * @return clientDetailsService
+	 */
+	private static IClientDetailsService getClientDetailsService() {
+		if (CLIENT_DETAILS_SERVICE == null) {
+			CLIENT_DETAILS_SERVICE = SpringUtil.getBean(IClientDetailsService.class);
+		}
+		return CLIENT_DETAILS_SERVICE;
+	}
+
+	/**
+	 * 获取配置类
+	 *
+	 * @return jwtProperties
+	 */
+	private static BladeTokenProperties getTokenProperties() {
+		if (TOKEN_PROPERTIES == null) {
+			TOKEN_PROPERTIES = SpringUtil.getBean(BladeTokenProperties.class);
+		}
+		return TOKEN_PROPERTIES;
+	}
+
+	/**
+	 * 获取Token签名
+	 *
+	 * @return String
+	 */
+	private static String getBase64Security() {
+		if (BASE64_SECURITY == null) {
+			BASE64_SECURITY = Base64.getEncoder().encodeToString(getTokenProperties().getSignKey().getBytes(Charsets.UTF_8));
+		}
+		return BASE64_SECURITY;
 	}
 
 	/**
@@ -87,11 +122,30 @@ public class SecureUtil {
 	/**
 	 * 获取用户信息
 	 *
+	 * @param auth auth
+	 * @return BladeUser
+	 */
+	public static BladeUser getUser(String auth) {
+		return getUser(getClaims(auth));
+	}
+
+	/**
+	 * 获取用户信息
+	 *
 	 * @param request request
 	 * @return BladeUser
 	 */
 	public static BladeUser getUser(HttpServletRequest request) {
-		Claims claims = getClaims(request);
+		return getUser(getClaims(request));
+	}
+
+	/**
+	 * 获取用户信息
+	 *
+	 * @param claims Claims
+	 * @return BladeUser
+	 */
+	public static BladeUser getUser(Claims claims) {
 		if (claims == null) {
 			return null;
 		}
@@ -258,19 +312,64 @@ public class SecureUtil {
 	 */
 	public static Claims getClaims(HttpServletRequest request) {
 		String auth = request.getHeader(SecureUtil.HEADER);
-		if (StringUtil.isNotBlank(auth) && auth.length() > AUTH_LENGTH) {
-			String headStr = auth.substring(0, 6).toLowerCase();
-			if (headStr.compareTo(SecureUtil.BEARER) == 0) {
-				auth = auth.substring(7);
-				return SecureUtil.parseJWT(auth);
-			}
-		} else {
-			String parameter = request.getParameter(SecureUtil.HEADER);
-			if (StringUtil.isNotBlank(parameter)) {
-				return SecureUtil.parseJWT(parameter);
-			}
+		if (StringUtil.isBlank(auth)) {
+			auth = request.getParameter(SecureUtil.HEADER);
+		}
+		return getClaims(auth);
+	}
+
+	/**
+	 * 获取Claims
+	 *
+	 * @param auth auth
+	 * @return Claims
+	 */
+	public static Claims getClaims(String auth) {
+		return SecureUtil.parseJWT(getToken(auth));
+	}
+
+	/**
+	 * 获取请求传递的token串
+	 *
+	 * @param auth token
+	 * @return String
+	 */
+	public static String getToken(String auth) {
+		if (isBearer(auth)) {
+			return auth.substring(AUTH_LENGTH);
+		}
+		if (isCrypto(auth)) {
+			return AesUtil.decryptFormBase64ToString(auth.substring(AUTH_LENGTH), getTokenProperties().getAesKey());
 		}
 		return null;
+	}
+
+	/**
+	 * 判断token类型为bearer
+	 *
+	 * @param auth token
+	 * @return String
+	 */
+	public static Boolean isBearer(String auth) {
+		if ((auth != null) && (auth.length() > AUTH_LENGTH)) {
+			String headStr = auth.substring(0, 6).toLowerCase();
+			return headStr.compareTo(BEARER) == 0;
+		}
+		return false;
+	}
+
+	/**
+	 * 判断token类型为crypto
+	 *
+	 * @param auth token
+	 * @return String
+	 */
+	public static Boolean isCrypto(String auth) {
+		if ((auth != null) && (auth.length() > AUTH_LENGTH)) {
+			String headStr = auth.substring(0, 6).toLowerCase();
+			return headStr.compareTo(CRYPTO) == 0;
+		}
+		return false;
 	}
 
 	/**
@@ -301,7 +400,7 @@ public class SecureUtil {
 	public static Claims parseJWT(String jsonWebToken) {
 		try {
 			return Jwts.parserBuilder()
-				.setSigningKey(Base64.getDecoder().decode(BASE64_SECURITY)).build()
+				.setSigningKey(Base64.getDecoder().decode(getBase64Security())).build()
 				.parseClaimsJws(jsonWebToken).getBody();
 		} catch (Exception ex) {
 			return null;
@@ -338,7 +437,7 @@ public class SecureUtil {
 		Date now = new Date(nowMillis);
 
 		//生成签名密钥
-		byte[] apiKeySecretBytes = Base64.getDecoder().decode(BASE64_SECURITY);
+		byte[] apiKeySecretBytes = Base64.getDecoder().decode(getBase64Security());
 		Key signingKey = new SecretKeySpec(apiKeySecretBytes, signatureAlgorithm.getJcaName());
 
 		//添加构成JWT的类
@@ -434,7 +533,7 @@ public class SecureUtil {
 	 * @return clientDetails
 	 */
 	private static IClientDetails clientDetails(String clientId) {
-		return clientDetailsService.loadClientByClientId(clientId);
+		return getClientDetailsService().loadClientByClientId(clientId);
 	}
 
 	/**
